@@ -7,7 +7,7 @@ const authMiddleware = require('../../Middleware/authMiddleware');
 
 router.get('/categories', authMiddleware, async (req, res) => {
     try {
-        const categories = await Category.find();
+        const categories = await Category.find({ userId: req.user.id });
         res.status(200).json(categories);
     } catch (error) {
         console.error('Error fetching categories:', error);
@@ -44,7 +44,7 @@ router.post('/category', authMiddleware, async (req, res) => {
             return res.status(400).json({ message: 'Category already exists' });
         }
 
-        const newCategory = new Category({ name, status });
+        const newCategory = new Category({ name, status, userId: req.user.id });
         await newCategory.save();
         res.status(201).json({ message: 'Category created successfully', newCategory });
     } catch (error) {

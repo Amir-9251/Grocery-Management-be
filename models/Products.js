@@ -30,10 +30,12 @@ const productSchema = new mongoose.Schema({
         type: Date,
         required: true
     },
-    totalProducts: {
-        type: Number,
-        default: 0
+    userId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User', // reference to User collection
+        required: true
     },
+
     createdAt: {
         type: Date,
         default: Date.now

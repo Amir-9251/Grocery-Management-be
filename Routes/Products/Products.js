@@ -4,36 +4,16 @@ const router = express.Router();
 const Product = require('../../models/Products'); // Assuming you have a Product model
 const authMiddleware = require('../../Middleware/authMiddleware'); // Assuming you have an auth middleware
 
-router.post('/product', authMiddleware, async (req, res) => {
-    const { productName, Unitprice, categoryId, code, quantity, supplier, ExpiryDate, totalProducts } = req.body.data; // Expecting { products: [ {...}, {...} ] }
-    console.log('Category:', req.body.data.categoryId);
-
-
-    try {
-        const product = new Product({ productName, Unitprice, code, quantity, category: categoryId, supplier, ExpiryDate, totalProducts });
-
-        await product.save();
-
-        // console.log('Total products in database:', user);
-        res.status(201).json({ message: 'Products created successfully', products: [product] });
-    } catch (error) {
-        console.error('Error creating products:', error);
-        if (error.name === 'ValidationError') {
-            return res.status(400).json({ message: 'Validation error', details: error.errors });
-        }
-        res.status(500).json({ message: error.message || 'Internal server error' });
-    }
-});
-
 router.get('/products', authMiddleware, async (req, res) => {
     try {
-        const products = await Product.find().populate('category');
+        const products = await Product.find({ userId: req.user.id }).populate('category');
         res.status(200).json(products);
     } catch (error) {
         console.error('Error fetching products:', error);
         res.status(500).json({ message: error.message || 'Server error' });
     }
 });
+
 
 router.get('/product/:id', authMiddleware, async (req, res) => {
     const { id } = req.params;
@@ -51,6 +31,30 @@ router.get('/product/:id', authMiddleware, async (req, res) => {
         res.status(500).json({ message: error.message || 'Server error' });
     }
 });
+
+router.post('/product', authMiddleware, async (req, res) => {
+    const { productName, Unitprice, categoryId, code, quantity, supplier, ExpiryDate, totalProducts } = req.body.data; // Expecting { products: [ {...}, {...} ] }
+    console.log('Category:', req.body.data.categoryId);
+
+
+    try {
+        const product = new Product({ productName, Unitprice, code, quantity, category: categoryId, supplier, ExpiryDate, totalProducts, userId: req.user.id });
+
+        await product.save();
+
+        // console.log('Total products in database:', user);
+        res.status(201).json({ message: 'Products created successfully', products: [product] });
+    } catch (error) {
+        console.error('Error creating products:', error);
+        if (error.name === 'ValidationError') {
+            return res.status(400).json({ message: 'Validation error', details: error.errors });
+        }
+        res.status(500).json({ message: error.message || 'Internal server error' });
+    }
+});
+
+
+
 
 router.put('/product/:id', authMiddleware, async (req, res) => {
     const { id } = req.params;
