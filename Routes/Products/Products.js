@@ -24,6 +24,31 @@ router.get('/products', authMiddleware, async (req, res) => {
     }
 });
 
+router.get('/products/search', authMiddleware, async (req, res) => {
+    const { search } = req.query;
+    console.log('Search query:', search);
+
+    try {
+        if (!search || search.trim() === '') {
+            return res.status(400).json({ message: 'Search query is required' });
+        }
+
+        const products = await Product.find({
+            userId: req.user.id,
+            $or: [
+                { productName: new RegExp(search, 'i') },
+                { code: new RegExp(search, 'i') },
+                { supplier: new RegExp(search, 'i') }
+            ]
+        }).populate('category');
+
+        res.status(200).json(products);
+    } catch (error) {
+        console.error('Error fetching products:', error);
+        res.status(500).json({ message: error.message || 'Server error' });
+    }
+});
+
 
 router.get('/product/:id', authMiddleware, async (req, res) => {
     const { id } = req.params;
