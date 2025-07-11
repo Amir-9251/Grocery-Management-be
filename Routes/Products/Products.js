@@ -5,9 +5,19 @@ const Product = require('../../models/Products'); // Assuming you have a Product
 const authMiddleware = require('../../Middleware/authMiddleware'); // Assuming you have an auth middleware
 
 router.get('/products', authMiddleware, async (req, res) => {
+    const { page, limit } = req.query;
+    const pageNumber = parseInt(page) || 1;
+    const limitNumber = parseInt(limit) || 10;
+    const skip = (pageNumber - 1) * limitNumber;
     try {
-        const products = await Product.find({ userId: req.user.id }).populate('category');
-        res.status(200).json(products);
+        const products = await Product.find({ userId: req.user.id })
+            .populate('category')
+            .skip(skip)
+            .limit(limitNumber);
+
+        const totalProducts = await Product.countDocuments({ userId: req.user.id });
+        const totalPages = Math.ceil(totalProducts / limitNumber);
+        res.status(200).json({ products, totalPages });
     } catch (error) {
         console.error('Error fetching products:', error);
         res.status(500).json({ message: error.message || 'Server error' });
