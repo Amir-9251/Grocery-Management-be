@@ -37,8 +37,8 @@ router.get('/products/search', authMiddleware, async (req, res) => {
             userId: req.user.id,
             $or: [
                 { productName: new RegExp(search, 'i') },
-                { category: new RegExp(search, 'i') },
-                { supplier: new RegExp(search, 'i') },
+                { code: new RegExp(search, 'i') },
+                { supplier: new RegExp(search, 'i') }
             ]
         }).populate('category');
 
