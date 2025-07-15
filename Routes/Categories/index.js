@@ -6,8 +6,19 @@ const authMiddleware = require('../../Middleware/authMiddleware');
 
 
 router.get('/categories', authMiddleware, async (req, res) => {
+
+    const { page, limit } = req.query;
+    const pageNumber = parseInt(page) || 1;
+    const limitNumber = parseInt(limit) || 10;
+    const skip = (pageNumber - 1) * limitNumber;
+
     try {
-        const categories = await Category.find({ userId: req.user.id });
+        const categories = await Category.find({ userId: req.user.id })
+            .skip(skip)
+            .limit(limitNumber);
+        const totalCategories = await Category.countDocuments({ userId: req.user.id });
+        const totalPages = Math.ceil(totalCategories / limitNumber);
+        res.status(200).json({ categories, totalPages });
         res.status(200).json(categories);
     } catch (error) {
         console.error('Error fetching categories:', error);
@@ -16,7 +27,21 @@ router.get('/categories', authMiddleware, async (req, res) => {
 
 })
 
+router.get('/categories/search', authMiddleware, async (req, res) => {
+    const { search } = req.query;
+    const searchRegex = new RegExp(search, 'i');
 
+    try {
+        const categories = await Category.find({
+            userId: req.user.id,
+            name: { $regex: searchRegex }
+        });
+        res.status(200).json({ categories });
+    } catch (error) {
+        console.error('Error fetching categories:', error);
+        res.status(500).json({ message: error.message || 'Internal server error' });
+    }
+});
 
 router.get('/category/:id', authMiddleware, async (req, res) => {
     const { id } = req.params;

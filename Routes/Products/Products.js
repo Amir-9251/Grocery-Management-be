@@ -1,6 +1,7 @@
 
 const express = require('express');
 const router = express.Router();
+const mongoose = require('mongoose');
 const Product = require('../../models/Products'); // Assuming you have a Product model
 const authMiddleware = require('../../Middleware/authMiddleware'); // Assuming you have an auth middleware
 
@@ -26,6 +27,7 @@ router.get('/products', authMiddleware, async (req, res) => {
 
 router.get('/products/search', authMiddleware, async (req, res) => {
     const { search } = req.query;
+    const searchRegex = new RegExp(search, 'i');
     console.log('Search query:', search);
 
     try {
@@ -33,14 +35,38 @@ router.get('/products/search', authMiddleware, async (req, res) => {
             return res.status(400).json({ message: 'Search query is required' });
         }
 
-        const products = await Product.find({
-            userId: req.user.id,
-            $or: [
-                { productName: new RegExp(search, 'i') },
-                { code: new RegExp(search, 'i') },
-                { supplier: new RegExp(search, 'i') }
-            ]
-        }).populate('category');
+        const products = await Product.aggregate([
+            {
+                $match: {
+                    userId: new mongoose.Types.ObjectId(req.user.id)
+                }
+            },
+            {
+                $lookup: {
+                    from: 'categories',              // This must match the collection name in MongoDB
+                    localField: 'category',
+                    foreignField: '_id',
+                    as: 'category'
+                }
+            },
+            {
+                $unwind: {
+                    path: '$category',
+                    preserveNullAndEmptyArrays: true // Optional if some products may not have category
+                }
+            },
+            {
+                $match: {
+                    $or: [
+                        { productName: { $regex: searchRegex } },
+                        { code: { $regex: searchRegex } },
+                        { supplier: { $regex: searchRegex } },
+                        { 'category.name': { $regex: searchRegex } }
+                    ]
+                }
+            }
+        ]);
+        console.log('Found products:', products.length);
 
         res.status(200).json(products);
     } catch (error) {
